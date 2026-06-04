@@ -1,0 +1,21 @@
+# Codecov config — deployed by the empowerite github-repository Terraform module (enable_codecov).
+#
+# Do not edit in-repo: managed by terraform (github_repository_file). Edit the source at
+# empowerite/infrastructure/terraform/modules/github-repository/files/codecov.yml and re-apply.
+#
+# `informational: true` keeps the codecov status checks NON-blocking: they report coverage but never fail a PR.
+# This matches the module's no-required-check stance (a required check that never reports would brick merges).
+# Promote to a blocking gate only by (a) flipping informational off here AND (b) adding the context to the
+# repo's var.required_status_checks — and only after it has reported green at least once.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "reach, diff, flags, files"
+  require_changes: true
