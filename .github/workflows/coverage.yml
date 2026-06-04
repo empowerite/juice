@@ -1,0 +1,42 @@
+# Codecov coverage upload — deployed by the empowerite github-repository Terraform module (enable_codecov).
+#
+# Do not edit in-repo: this file is managed by terraform (github_repository_file). Edit the source at
+# empowerite/infrastructure/terraform/modules/github-repository/files/coverage.yml and re-apply.
+#
+# The job is guarded by `if: hashFiles('**/*.go') != ''` so it no-ops cleanly until the repo has Go code — no
+# failing Actions until juice has Go code. Uploading needs the CODECOV_TOKEN secret, set out-of-band via
+# provision/codecov-token.sh (never through Terraform state).
+name: Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    # No-op until the repo actually has Go code — keeps Actions green until then and avoids a failing required check.
+    if: hashFiles('**/*.go') != ''
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run tests with coverage
+        run: go test -coverprofile=coverage.txt ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.txt
+          fail_ci_if_error: true
