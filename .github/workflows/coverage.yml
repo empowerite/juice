@@ -4,8 +4,8 @@
 # empowerite/infrastructure/terraform/modules/github-repository/files/coverage.yml and re-apply.
 #
 # The job is guarded by `if: hashFiles('**/*.go') != ''` so it no-ops cleanly — no failing Actions — until the
-# repo has Go code. Uploading needs the CODECOV_TOKEN secret, set out-of-band via bash/provision-codecov-token.sh
-# (never through Terraform state).
+# repo has Go code. Uploads authenticate with GitHub Actions OIDC (`use_oidc: true` + `id-token: write`), so there is
+# no CODECOV_TOKEN secret to copy from the dashboard or rotate (#485).
 name: Coverage
 
 on:
@@ -20,6 +20,10 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-latest
+    # id-token: write lets the Codecov action request the run's OIDC token; scoped to this job, not the workflow.
+    permissions:
+      contents: read
+      id-token: write
     # No-op until the repo has Go code — keeps Actions green and avoids a failing required check.
     if: hashFiles('**/*.go') != ''
     steps:
@@ -37,6 +41,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           files: coverage.txt
           fail_ci_if_error: true
