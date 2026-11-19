@@ -3,9 +3,9 @@
 # Do not edit in-repo: this file is managed by terraform (github_repository_file). Edit the source at
 # empowerite/infrastructure/terraform/modules/github-repository/files/coverage.yml and re-apply.
 #
-# The job is guarded by `if: hashFiles('**/*.go') != ''` so it no-ops cleanly — no failing Actions — until the
-# repo has Go code. Uploads authenticate with GitHub Actions OIDC (`use_oidc: true` + `id-token: write`), so there is
-# no CODECOV_TOKEN secret to copy from the dashboard or rotate (#485).
+# Every step after the checkout is guarded by `if: hashFiles('**/*.go') != ''`, so the job ends green with nothing
+# to do until the repo has Go code. Uploads authenticate with GitHub Actions OIDC (`use_oidc: true` +
+# `id-token: write`), so there is no CODECOV_TOKEN secret to copy from the dashboard or rotate (#485).
 name: Coverage
 
 on:
@@ -24,21 +24,25 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    # No-op until the repo has Go code — keeps Actions green and avoids a failing required check.
-    if: hashFiles('**/*.go') != ''
     steps:
       - name: Check out
         uses: actions/checkout@v4
 
+      # Every step below is skipped until the repo has Go code, so the job ends green with nothing to do. The guard
+      # is on the steps, after the checkout: hashFiles reads the checked-out tree, and GitHub allows it in a step's
+      # `if` alone. In a job's `if` it is a workflow file error, and no job starts.
       - name: Set up Go
+        if: hashFiles('**/*.go') != ''
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
       - name: Run tests with coverage
+        if: hashFiles('**/*.go') != ''
         run: go test -coverprofile=coverage.txt ./...
 
       - name: Upload coverage to Codecov
+        if: hashFiles('**/*.go') != ''
         uses: codecov/codecov-action@v5
         with:
           use_oidc: true
